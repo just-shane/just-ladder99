@@ -88,6 +88,36 @@ relay:
           #   - id: d1-total_auto_cut_time
           #     ignore: true
 
+    - alias: Mazak5717 
+      url: http://mtconnect.mazakcorp.com:5717 # url to the agent
+      devices:
+        - id: d2 
+          alias: Mill-2 
+
+    - alias: Mazak5719 
+      url: http://mtconnect.mazakcorp.com:5719 # url to the agent
+      devices:
+        - id: d3 
+          alias: Mill-3 
+
+    - alias: Mazak5612 
+      url: http://mtconnect.mazakcorp.com:5612 
+      devices:
+        - id: d4 
+          alias: Mill-4 
+
+    - alias: Mazak5611 
+      url: http://mtconnect.mazakcorp.com:5611 
+      devices:
+        - id: d5 
+          alias: Mill-5
+
+    - alias: Mazak5610
+      url: http://mtconnect.mazakcorp.com:5610
+      devices:
+        - id: d6 
+          alias: Mill-6  
+
     #- alias: Simulation # this is an identifier for the agent, used by the db - don't change once set!
     #  url: http://simulation:5000 # url to the agent
     #  retention: 1day # agent retention - overrides relay retention value
