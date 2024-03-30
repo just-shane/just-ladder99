@@ -1,0 +1,131 @@
+# client setup
+
+client:
+  name: Example # eg company name - not used yet
+  timezone: America/Chicago # used by autoprune, adapter jobboss driver, and meter availability.js
+
+# the Ladder99 Adapter service reads this section to know what devices to poll/subscribe to.
+# each device driver polls or subscribes to data from a device, then sends the
+# data to the Agent via SHDR (a simple key-value text format).
+# the Agent then fits that data into an XML structure as defined by the corresponding
+# agent.xml and agent.cfg files.
+adapter:
+  devices:
+    # the host device polls the host os/cpu for load, temperature, disk for free space, etc.
+    - id: host # must match id in agent.xml
+      name: Host # this must match name in agent.cfg and agent.xml
+      # see also device alias in the relay section.
+
+      # each device has one or more "sources", which use drivers that feed data to
+      # a key-value cache - when a key's value changes, the cache sends the new value
+      # to the Agent via SHDR.
+      sources:
+        # the host device driver defines a set of cache outputs in an outputs.yaml file.
+        # these map from the cache keys to the SHDR keys.
+        # it also defines a set of cache inputs in an inputs.yaml file.
+        # the driver itself is a node.js module that polls the host os data.
+        - driver: host # adapter plugin - manages protocol and payload
+          schema: host # schema defines inputs and outputs with yaml files
+      # each device the adapter connects to has its own tcp port to an agent,
+      # and the agent is configured to listen to that port in agent.cfg.
+      outputs:
+        agent:
+          host: adapter # must match agent.cfg value. 'adapter' here refers to the adapter Docker service.
+          port: 7890 # must match agent.cfg value
+
+# the relay service reads this section to know what agents and devices to read data from.
+# can specify retention periods for data for agent, device, or dataitems - 1w minimum.
+# will clear all unneeded data saturdays at midnight - then vacuum analyze db.
+# warning: don't change the agent aliases once set (eg Main) as they are used
+# to synch data with db.
+relay:
+  # retention: 1week # can specify data retention period for ALL agents here
+  agents:
+    # this is our main agent, as set up in compose.yaml and compose-overrides.yaml.
+    # currently it is just fed data from the Micro adapter, which reports cpu, temp, disk space, etc.
+    - alias: Main # this is an identifier for the agent, used by the db - don't change once set!
+      url: http://agent:5000 # url to the agent
+      # retention: 1week # agent data retention period - overrides relay retention value
+      # ignore: true # can specify this to turn agent recording on/off for all devices.
+      # the devices sections is optional, but lets you assign a friendly alias and retention period, etc.
+      devices:
+        - id: host # device id - must match id in agent.xml
+          alias: Host # device alias is used in path expressions - no spaces
+          retention: 1week # device data retention period - overrides agent retention value
+          # ignore: true # specify this to turn device recording on/off
+          # # can translate, ignore, or set retention for individual dataitems
+          #. better to set here, or in module config?
+          # dataitems:
+             #- id: host-temp # this is 'deviceId-dataitemId', where dataitemId is defined in agent.xml.
+          #     retention: 1day # dataitem retention period - overrides device retention value
+          #     # ignore: true # ignore this dataitem - overrides device ignore value
+          #     # pathstep: AvailFoo # optional path step translation for this dataitem
+
+    - alias: Mazak5701 # this is an identifier for the agent, used by the db - don't change once set!
+      url: http://mtconnect.mazakcorp.com:5701 # url to the agent
+      #retention: 1week # agent retention - overrides relay retention value
+      # ignore: true # ignore this agent - overrides relay ignore value
+      # the devices sections is optional, but lets you assign a friendly alias and retention period, etc.
+      devices:
+        - id: d1 # must match id in agent.xml
+          alias: Mill-12345 # used in path expressions - no spaces!
+          # retention: 1week # device retention - overrides agent retention value
+          # ignore: true # ignore this device - overrides agent ignore value - not yet implemented
+          # dataitems:
+          #   # note: the d1-Cload and d1-Sload dataitems have the same type signature, hence path.
+          #   # to resolve that the Relay will add the name or id in brackets, eg '.../Load[Cload]'.
+          #   # you can override that by specifying pathsteps here.
+          #   - id: d1-Cload
+          #     pathstep: Load[Index] # override path step for this dataitem
+          #   - id: d1-Sload
+          #     pathstep: Load[Spindle]
+          #   - id: d1-auto_time
+          #     ignore: true # ignore this dataitem - overrides device ignore value
+          #   - id: d1-total_time
+          #     ignore: true
+          #   - id: d1-cut_time
+          #     ignore: true
+          #   - id: d1-total_auto_cut_time
+          #     ignore: true
+
+    #- alias: Simulation # this is an identifier for the agent, used by the db - don't change once set!
+    #  url: http://simulation:5000 # url to the agent
+    #  retention: 1day # agent retention - overrides relay retention value
+    #  # ignore: true # ignore this agent - overrides relay ignore value
+#
+# # meter service reads this section, AND the relay section for list of agents and devices.
+# meter:
+#   defaults:
+#     # availability.js plugin defaults
+#     # gets active = time machine was active in previous time period,
+#     # based on part count changes,
+#     # and available = time is within start/stop schedule.
+#     # note that times have NO Z, ie they're purely local times, as obtained from jobboss.
+#     availability:
+#       activePath: Controller/AccumulatedTimeCut # acctimeAuto has auto incrementing time
+#       # # get start and stop times from xml, which could be set by jobboss driver
+#       # startPath: Processes/Shift/ProcessTimeStart # eg '2022-01-27T05:00:00'
+#       # stopPath: Processes/Shift/ProcessTimeComplete # eg '2022-01-27T13:30:00'
+#       # or set manual times
+#       # this could get very complex - just keep it simple for now
+#       startTime: '05:00:00'
+#       stopTime: '13:30:00'
+
+#     # # count.js plugin defaults
+#     # # accumulates count deltas into the lifetime count
+#     # count:
+#     #   deltaPath: Processes/Job/PartCountAll
+#     #   lifetimePath: Processes/Life/PartCountAll
+
+#     # # rate.js plugin defaults
+#     # # calculates the rate of change between counts, ie the production rate.
+#     # #. not finished yet
+#     # rate:
+#     #   valuePath: Processes/Life/PartCountAll
+#     #.   ratePath: controller/PartOccurrence/PartCountRate
+
+#   # set overrides per agentAlias/deviceAlias/meter here
+#   overrides:
+#     Main/Host:
+#       availability:
+#         ignore: true

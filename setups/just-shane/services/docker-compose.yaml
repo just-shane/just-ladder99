@@ -1,0 +1,52 @@
+# docker-compose overrides
+# overrides and extends the values in ladder99/docker-compose.yaml
+
+# see other client repos for ideas for adding information to services.
+# typically, would add 'profiles: - base' to each service used.
+# that way, we know what is needed, and can start them all with
+#   l99 start <setup>
+# which runs the 'base' profile by default.
+
+# version must be a string - need 3.8 for profiles
+version: '3.8'
+
+services:
+  adapter:
+    profiles:
+      - base
+
+  agent:
+    profiles:
+      - base
+
+  dozzle:
+    profiles:
+      - base
+
+  grafana:
+    profiles:
+      - base
+
+  # meter:
+  #   profiles:
+  #     - base
+
+  portainer:
+    profiles:
+      - base
+
+  postgres:
+    profiles:
+      - base
+
+  pgadmin:
+    profiles:
+      - base
+
+  relay:
+    profiles:
+      - base
+
+# simulation:
+#   profiles:
+#     - base
